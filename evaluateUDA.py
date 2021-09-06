@@ -140,8 +140,7 @@ def evaluate(model, dataset, ignore_label=250, save_output_images=False, save_di
         test_dataset = data_loader( data_path, img_size=input_size, img_mean = IMG_MEAN, is_transform=True, split='val')
         testloader = data.DataLoader(test_dataset, batch_size=1, shuffle=False, pin_memory=True)
         interp = nn.Upsample(size=input_size, mode='bilinear', align_corners=True)
-        ignore_label = 250
-
+        ignore_label = 250 
     elif dataset == 'gta':
         num_classes = 19
         data_loader = get_loader('gta')
@@ -159,8 +158,11 @@ def evaluate(model, dataset, ignore_label=250, save_output_images=False, save_di
     total_loss = []
 
     for index, batch in enumerate(testloader):
-        image, label, size, name, _ = batch
-        size = size[0]
+        # image, label, size, name, _ = batch
+        # [TODO:mimi] strong aug
+        image, _, _, label, _, _, _ = batch
+
+        # size = size[0] #[TODO:mimi remove useless]
         #if index > 500:
         #    break
         with torch.no_grad():

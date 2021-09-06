@@ -1,0 +1,20 @@
+class  0 road         IU 73.27
+class  1 sidewalk     IU 0.15
+class  2 building     IU 56.14
+class  3 wall         IU 11.71
+class  4 fence        IU 10.52
+class  5 pole         IU 3.58
+class  6 traffic_light IU 25.42
+class  7 traffic_sign IU 1.81
+class  8 vegetation   IU 37.23
+class  9 terrain      IU 1.24
+class 10 sky          IU 34.52
+class 11 person       IU 0.98
+class 12 rider        IU 0.03
+class 13 car          IU 20.40
+class 14 truck        IU 49.17
+class 15 bus          IU 39.64
+class 16 train        IU 0.00
+class 17 motorcycle   IU 7.62
+class 18 bicycle      IU 0.00
+meanIOU: 0.19653890003938632

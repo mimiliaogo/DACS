@@ -44,6 +44,10 @@ from evaluateUDA import evaluate
 
 import time
 
+#[TODO:mimi] strong aug
+from utils.randaugment import RandAugmentMC
+from utils.randaugment import affine_sample
+
 start = timeit.default_timer()
 start_writeable = datetime.datetime.now().strftime('%m-%d_%H-%M')
 
@@ -122,12 +126,38 @@ def update_ema_variables(ema_model, model, alpha_teacher, iteration):
     return ema_model
 
 def strongTransform(parameters, data=None, target=None):
+    # [mi] data: image / target: label
     assert ((data is not None) or (target is not None))
     data, target = transformsgpu.oneMix(mask = parameters["Mix"], data = data, target = target)
     data, target = transformsgpu.colorJitter(colorJitter = parameters["ColorJitter"], img_mean = torch.from_numpy(IMG_MEAN.copy()).cuda(), data = data, target = target)
     data, target = transformsgpu.gaussian_blur(blur = parameters["GaussianBlur"], data = data, target = target)
     data, target = transformsgpu.flip(flip = parameters["flip"], data = data, target = target)
     return data, target
+
+
+# [TODO:mimi] strong trasform for label
+def label_strong_T(label, params, padding=255, scale=1):
+        '''
+        convert the label to fit the corresponding strong augmentation image
+        label: B, H, W
+        '''
+        label = label + 1
+        for i in range(label.shape[0]):
+            for (Tform, param) in params.items():
+                if Tform == 'Hflip' and param[i].item() == 1:
+                    label[i] = label[i].clone().flip(-1)
+                elif (Tform == 'ShearX' or Tform == 'ShearY' or Tform == 'TranslateX' or Tform == 'TranslateY' or Tform == 'Rotate') and param[i].item() != 1e4:
+                    v = int(param[i].item() // scale) if Tform == 'TranslateX' or Tform == 'TranslateY' else param[i].item()
+                    label[i:i+1] = affine_sample(label[i:i+1].clone(), v, Tform)
+                elif Tform == 'CutoutAbs' and isinstance(param, list):
+                    x0 = int(param[0][i].item() // scale)
+                    y0 = int(param[1][i].item() // scale) 
+                    x1 = int(param[2][i].item() // scale)
+                    y1 = int(param[3][i].item() // scale)
+                    label[i, :, y0:y1, x0:x1] = 0
+        label[label == 0] = padding + 1  # for strong augmentation, constant padding ([mimi] ignore pixel)
+        label = label - 1
+        return label
 
 def weakTransform(parameters, data=None, target=None):
     data, target = transformsgpu.flip(flip = parameters["flip"], data = data, target = target)
@@ -165,11 +195,11 @@ def save_image(image, epoch, id, palette):
 
             image = restore_transform(image)
             #image = PIL.Image.fromarray(np.array(image)[:, :, ::-1])  # BGR->RGB
-            image.save(os.path.join('../visualiseImages/', str(epoch)+ id + '.png'))
+            image.save(os.path.join('./visualiseImages/', str(epoch)+ id + '.png'))
         else:
             mask = image.numpy()
             colorized_mask = colorize_mask(mask, palette)
-            colorized_mask.save(os.path.join('../visualiseImages', str(epoch)+ id + '.png'))
+            colorized_mask.save(os.path.join('./visualiseImages', str(epoch)+ id + '.png'))
 
 def _save_checkpoint(iteration, model, optimizer, config, ema_model, save_best=False, overwrite=True):
     checkpoint = {
@@ -286,7 +316,7 @@ def main():
             data_aug = None
 
         #data_aug = Compose([RandomHorizontallyFlip()])
-        train_dataset = data_loader(data_path, is_transform=True, augmentations=data_aug, img_size=input_size, img_mean = IMG_MEAN)
+        train_dataset = data_loader(data_path, is_transform=True, augmentations=data_aug, strong_augmentations=True, img_size=input_size, img_mean = IMG_MEAN)
 
     train_dataset_size = len(train_dataset)
     print ('dataset size: ', train_dataset_size)
@@ -357,6 +387,7 @@ def main():
 
     accumulated_loss_l = []
     accumulated_loss_u = []
+    accumulated_loss_my_consistency = []
 
     if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
@@ -369,7 +400,8 @@ def main():
 
         loss_u_value = 0
         loss_l_value = 0
-
+        loss_my_cons_value = 0
+        
         optimizer.zero_grad()
 
         if lr_schedule:
@@ -392,7 +424,7 @@ def main():
         weak_parameters={"flip": 0}
 
 
-        images, labels, _, _ = batch
+        images, labels, _, _ = batch # [mimi] gta5
         images = images.cuda()
         labels = labels.cuda().long()
 
@@ -404,33 +436,35 @@ def main():
 
         if train_unlabeled:
             try:
-                batch_remain = next(trainloader_remain_iter)
+                batch_remain = next(trainloader_remain_iter) 
                 if batch_remain[0].shape[0] != batch_size:
                     batch_remain = next(trainloader_remain_iter)
             except:
                 trainloader_remain_iter = iter(trainloader_remain)
                 batch_remain = next(trainloader_remain_iter)
 
-            images_remain, _, _, _, _ = batch_remain
+            images_remain, images_strong, params_strong, _, _, _, _ = batch_remain # [mimi] cityscapes
             images_remain = images_remain.cuda()
+            images_strong = images_strong.cuda() #[TODO]
             inputs_u_w, _ = weakTransform(weak_parameters, data = images_remain)
             #inputs_u_w = inputs_u_w.clone()
             logits_u_w = interp(ema_model(inputs_u_w))
             logits_u_w, _ = weakTransform(getWeakInverseTransformParameters(weak_parameters), data = logits_u_w.detach())
 
-            pseudo_label = torch.softmax(logits_u_w.detach(), dim=1)
+            pseudo_label = torch.softmax(logits_u_w.detach(), dim=1) # [PL] mix image PL
             max_probs, targets_u_w = torch.max(pseudo_label, dim=1)
-
+            
             if mix_mask == "class":
                 for image_i in range(batch_size):
                     classes = torch.unique(labels[image_i])
+                
                     #classes=classes[classes!=ignore_label]
-                    nclasses = classes.shape[0]
+                    nclasses = classes.shape[0] # [mi] how many classes in an image
                     #if nclasses > 0:
-                    classes = (classes[torch.Tensor(np.random.choice(nclasses, int((nclasses+nclasses%2)/2),replace=False)).long()]).cuda()
+                    classes = (classes[torch.Tensor(np.random.choice(nclasses, int((nclasses+nclasses%2)/2),replace=False)).long()]).cuda() # [mi] classes to mix
 
                     if image_i == 0:
-                        MixMask0 = transformmasks.generate_class_mask(labels[image_i], classes).unsqueeze(0).cuda()
+                        MixMask0 = transformmasks.generate_class_mask(labels[image_i], classes).unsqueeze(0).cuda() # [mi] source image mask to paste on 
                     else:
                         MixMask1 = transformmasks.generate_class_mask(labels[image_i], classes).unsqueeze(0).cuda()
 
@@ -451,12 +485,13 @@ def main():
             else:
                 strong_parameters["GaussianBlur"] = 0
 
+            # [mi] image mix + strong transform
             inputs_u_s0, _ = strongTransform(strong_parameters, data = torch.cat((images[0].unsqueeze(0),images_remain[0].unsqueeze(0))))
             strong_parameters["Mix"] = MixMask1
             inputs_u_s1, _ = strongTransform(strong_parameters, data = torch.cat((images[1].unsqueeze(0),images_remain[1].unsqueeze(0))))
             inputs_u_s = torch.cat((inputs_u_s0,inputs_u_s1))
             logits_u_s = interp(model(inputs_u_s))
-
+            # [mi] label mix + strong transform
             strong_parameters["Mix"] = MixMask0
             _, targets_u0 = strongTransform(strong_parameters, target = torch.cat((labels[0].unsqueeze(0),targets_u_w[0].unsqueeze(0))))
             strong_parameters["Mix"] = MixMask1
@@ -484,8 +519,22 @@ def main():
                 L_u = consistency_weight * unlabeled_weight * unlabeled_loss(logits_u_s, pseudo_label)
             elif consistency_loss == 'CE':
                 L_u = consistency_weight * unlabeled_loss(logits_u_s, targets_u, pixelWiseWeight)
-
-            loss = L_l + L_u
+            
+            # [TODO:mi] strong augmentation loss
+            # print('shape', images_strong[0].shape)
+            # image_strong_0, params_0 = myStrongTransform(images_remain[0].unsqueeze(0).cpu().numpy())
+            # image_strong_1, params_1 = myStrongTransform(images_remain[1].unsqueeze(0).cpu().numpy())
+            label_strong_0 = label_strong_T(targets_u_w[0].unsqueeze(0).unsqueeze(0).float(), params_strong)
+            label_strong_1 = label_strong_T(targets_u_w[1].unsqueeze(0).unsqueeze(0).float(), params_strong)
+            # print('pl label', label_strong_0.shape, targets_u.shape)
+            logits_strong = interp(model(images_strong))
+            label_strong = torch.cat((label_strong_0,label_strong_1)).long()
+            label_strong = label_strong.reshape([2, images_strong[0].shape[1], images_strong[0].shape[2]]) # (B, H, W)
+            L_my_consistency = loss_calc(logits_strong, label_strong)
+            # print(logits_strong.shape, label_strong.shape)
+            # loss = L_l + L_u
+            # [TODO:mi] add strong augmentation consistency loss
+            loss = L_l + L_u  + L_my_consistency
 
         else:
             loss = L_l
@@ -497,10 +546,12 @@ def main():
             loss_l_value += L_l.mean().item()
             if train_unlabeled:
                 loss_u_value += L_u.mean().item()
+                loss_my_cons_value += L_my_consistency.mean().item()
         else:
             loss_l_value += L_l.item()
             if train_unlabeled:
                 loss_u_value += L_u.item()
+                loss_my_cons_value += L_my_consistency.item()
 
         loss.backward()
         optimizer.step()
@@ -510,7 +561,8 @@ def main():
             alpha_teacher = 0.99
             ema_model = update_ema_variables(ema_model = ema_model, model = model, alpha_teacher=alpha_teacher, iteration=i_iter)
 
-        print('iter = {0:6d}/{1:6d}, loss_l = {2:.3f}, loss_u = {3:.3f}'.format(i_iter, num_iterations, loss_l_value, loss_u_value))
+        # print('iter = {0:6d}/{1:6d}, loss_l = {2:.3f}, loss_u = {3:.3f}'.format(i_iter, num_iterations, loss_l_value, loss_u_value))
+        print('iter = {0:6d}/{1:6d}, loss_l = {2:.3f}, loss_u = {3:.3f}, loss_my_cons = {4:.3f}'.format(i_iter, num_iterations, loss_l_value, loss_u_value, loss_my_cons_value))
 
         if i_iter % save_checkpoint_every == 0 and i_iter!=0:
             if epochs_since_start * len(trainloader) < save_checkpoint_every:
@@ -525,6 +577,9 @@ def main():
             accumulated_loss_l.append(loss_l_value)
             if train_unlabeled:
                 accumulated_loss_u.append(loss_u_value)
+                # [TODO:mimi] strong transform consistency loss
+                accumulated_loss_my_consistency.append(loss_my_cons_value)
+
             if i_iter % log_per_iter == 0 and i_iter != 0:
 
                 tensorboard_writer.add_scalar('Training/Supervised loss', np.mean(accumulated_loss_l), i_iter)
@@ -532,13 +587,15 @@ def main():
 
                 if train_unlabeled:
                     tensorboard_writer.add_scalar('Training/Unsupervised loss', np.mean(accumulated_loss_u), i_iter)
-                    accumulated_loss_u = []
+                    tensorboard_writer.add_scalar('Training/Unsupervised My Cons loss', np.mean(accumulated_loss_my_consistency), i_iter)
 
+                    accumulated_loss_u = []
+                    accumulated_loss_my_consistency = []
 
         if i_iter % val_per_iter == 0 and i_iter != 0:
             model.eval()
             if dataset == 'cityscapes':
-                mIoU, eval_loss = evaluate(model, dataset, ignore_label=250, input_size=(512,1024), save_dir=checkpoint_dir)
+                mIoU, eval_loss = evaluate(model, dataset, ignore_label=ignore_label, input_size=(512,1024), save_dir=checkpoint_dir)
 
             model.train()
 
@@ -552,11 +609,20 @@ def main():
 
         if save_unlabeled_images and train_unlabeled and i_iter % save_checkpoint_every == 0:
             # Saves two mixed images and the corresponding prediction
-            save_image(inputs_u_s[0].cpu(),i_iter,'input1',palette.CityScpates_palette)
-            save_image(inputs_u_s[1].cpu(),i_iter,'input2',palette.CityScpates_palette)
+            save_image(inputs_u_s[0].cpu(),i_iter,'input1_mix',palette.CityScpates_palette)
+            # save_image(inputs_u_s[1].cpu(),i_iter,'input2',palette.CityScpates_palette)
             _, pred_u_s = torch.max(logits_u_s, dim=1)
-            save_image(pred_u_s[0].cpu(),i_iter,'pred1',palette.CityScpates_palette)
-            save_image(pred_u_s[1].cpu(),i_iter,'pred2',palette.CityScpates_palette)
+            save_image(pred_u_s[0].cpu(),i_iter,'pred1_mix',palette.CityScpates_palette)
+            # save_image(pred_u_s[1].cpu(),i_iter,'pred2',palette.CityScpates_palette)
+            #[TODO:mimi] strong aug image 
+            save_image(images_strong[0].cpu(),i_iter,'input1_strong',palette.CityScpates_palette)
+            _, pred_strong = torch.max(logits_strong, dim=1)
+            save_image(pred_strong[0].cpu(),i_iter,'pred1_strong',palette.CityScpates_palette)
+            save_image(label_strong[0].cpu(),i_iter,'label1_strong',palette.CityScpates_palette)
+
+            # save_image(inputs_u_w[0].cpu(),i_iter,'input1_weak',palette.CityScpates_palette)
+
+
 
     _save_checkpoint(num_iterations, model, optimizer, config, ema_model)
 

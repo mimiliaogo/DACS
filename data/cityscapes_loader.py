@@ -7,6 +7,7 @@ from torch.utils import data
 
 from data.city_utils import recursive_glob
 from data.augmentations import *
+from utils.randaugment import RandAugmentMC
 
 class cityscapesLoader(data.Dataset):
     """cityscapesLoader
@@ -54,6 +55,8 @@ class cityscapesLoader(data.Dataset):
         img_size=(512, 1024),
         img_norm=False,
         augmentations=None,
+        #[TODO:mimi]
+        strong_augmentations=True,
         version="cityscapes",
         return_id=False,
         img_mean = np.array([73.15835921, 82.90891754, 72.39239876])
@@ -70,6 +73,9 @@ class cityscapesLoader(data.Dataset):
         self.split = split
         self.is_transform = is_transform
         self.augmentations = augmentations
+        # [TODO: mimi] strong aug
+        self.strong_augmentations = strong_augmentations
+        self.randaug = RandAugmentMC(4, 10) # make augmentation stronger
         self.img_norm = img_norm
         self.n_classes = 19
         self.img_size = (
@@ -78,9 +84,9 @@ class cityscapesLoader(data.Dataset):
         self.mean = img_mean
         self.files = {}
 
-        self.images_base = os.path.join(self.root, "leftImg8bit_trainvaltest","leftImg8bit", self.split)
+        self.images_base = os.path.join(self.root, "leftImg8bit", self.split)
         self.annotations_base = os.path.join(
-            self.root, "gtFine_trainvaltest", "gtFine", self.split
+            self.root, "gtFine", self.split
         )
 
         self.files[split] = recursive_glob(rootdir=self.images_base, suffix=".png")
@@ -140,21 +146,29 @@ class cityscapesLoader(data.Dataset):
 
         img = m.imread(img_path)
         img = np.array(img, dtype=np.uint8)
-
+        
         lbl = m.imread(lbl_path)
         lbl = np.array(lbl, dtype=np.uint8)
         lbl = self.encode_segmap(lbl)
 
+
         if self.augmentations is not None:
             img, lbl = self.augmentations(img, lbl)
 
+        # [TODO:mimi] strong augmentation
+        img_strong = img
+        params_strong = None
+        if self.strong_augmentations:
+            img_strong, params_strong = self.randaug(Image.fromarray(img))
+        
         if self.is_transform:
-            img, lbl = self.transform(img, lbl)
+                img_strong, _ = self.transform(img_strong, lbl)
+                img, lbl = self.transform(img, lbl)
 
         img_name = img_path.split('/')[-1]
         if self.return_id:
             return img, lbl, img_name, img_name, index
-        return img, lbl, img_path, lbl_path, img_name
+        return img, img_strong, params_strong, lbl, img_path, lbl_path, img_name
 
     def transform(self, img, lbl):
         """transform

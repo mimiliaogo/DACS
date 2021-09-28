@@ -48,6 +48,7 @@ class GTA5DataSet(data.Dataset):
         datafiles = self.files[index]
 
         image = Image.open(datafiles["img"]).convert('RGB')
+        print('gta5', datafiles["img"])
         label = Image.open(datafiles["label"])
         name = datafiles["name"]
 

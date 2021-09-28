@@ -90,6 +90,10 @@ class cityscapesLoader(data.Dataset):
         )
 
         self.files[split] = recursive_glob(rootdir=self.images_base, suffix=".png")
+        # [TODO: mimi style transfer files]
+        self.style_files = {}
+        self.style_images_base = os.path.join('/home/engine211/Code/DPL/CycleGAN_DPL/DPI2I_path_to_cityscapes2GTA5', self.split)
+        self.style_files[split] = recursive_glob(rootdir=self.style_images_base, suffix=".png")
 
         self.void_classes = [0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1]
         self.valid_classes = [7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33,]
@@ -138,6 +142,10 @@ class cityscapesLoader(data.Dataset):
         :param index:
         """
         img_path = self.files[self.split][index].rstrip()
+        #[TODO: style img]
+        # img_style_path = self.style_files[self.split][index].rstrip()
+        img_style_path = os.path.join('/home/engine211/Code/DPL/CycleGAN_DPL/DPI2I_path_to_cityscapes2GTA5', self.split, img_path.split('/')[-1])
+
         lbl_path = os.path.join(
             self.annotations_base,
             img_path.split(os.sep)[-2], # temporary for cross validation
@@ -146,14 +154,18 @@ class cityscapesLoader(data.Dataset):
 
         img = m.imread(img_path)
         img = np.array(img, dtype=np.uint8)
-        
+        img_style = m.imread(img_style_path)
+        img_style = np.array(img_style, dtype=np.uint8)
         lbl = m.imread(lbl_path)
         lbl = np.array(lbl, dtype=np.uint8)
         lbl = self.encode_segmap(lbl)
-
+        
+        #[TODO style]
+        lbl_cp = lbl
 
         if self.augmentations is not None:
             img, lbl = self.augmentations(img, lbl)
+            img_style, lbl_cp = self.augmentations(img_style, lbl_cp)
 
         # [TODO:mimi] strong augmentation
         img_strong = img
@@ -164,11 +176,13 @@ class cityscapesLoader(data.Dataset):
         if self.is_transform:
                 img_strong, _ = self.transform(img_strong, lbl)
                 img, lbl = self.transform(img, lbl)
+                img_style, lbl_cp = self.transform(img_style, lbl_cp)
 
         img_name = img_path.split('/')[-1]
         if self.return_id:
             return img, lbl, img_name, img_name, index
-        return img, img_strong, params_strong, lbl, img_path, lbl_path, img_name
+        #[TODO] add img_strong, img_style
+        return img, img_strong, params_strong, img_style, lbl, img_path, lbl_path, img_name
 
     def transform(self, img, lbl):
         """transform

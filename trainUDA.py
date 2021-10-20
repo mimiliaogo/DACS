@@ -447,7 +447,8 @@ def main():
             images_remain = images_remain.cuda()
             images_strong = images_strong.cuda() #[TODO]
             images_src_like = images_src_like.cuda() #[TODO src like]
-
+            
+            # target ema 
             inputs_u_w, _ = weakTransform(weak_parameters, data = images_remain)
             #inputs_u_w = inputs_u_w.clone()
             logits_u_w = interp(ema_model(inputs_u_w))
@@ -456,13 +457,13 @@ def main():
             pseudo_label = torch.softmax(logits_u_w.detach(), dim=1) # [PL] mix image PL
             max_probs, targets_u_w = torch.max(pseudo_label, dim=1)
             
-            #[TODO src like img]
-            inputs_u_w_src_like, _ = weakTransform(weak_parameters, data = images_src_like)
-            logits_u_w_src_like = interp(ema_model(inputs_u_w_src_like))
-            logits_u_w_src_like, _ = weakTransform(getWeakInverseTransformParameters(weak_parameters), data = logits_u_w_src_like.detach())
+            #[TODO target src like img ema]
+            # inputs_u_w_src_like, _ = weakTransform(weak_parameters, data = images_src_like)
+            # logits_u_w_src_like = interp(ema_model(inputs_u_w_src_like))
+            # logits_u_w_src_like, _ = weakTransform(getWeakInverseTransformParameters(weak_parameters), data = logits_u_w_src_like.detach())
 
-            pseudo_label_src_like = torch.softmax(logits_u_w_src_like.detach(), dim=1) # [PL] mix image PL
-            max_probs_src_like, targets_u_w_src_like = torch.max(pseudo_label_src_like, dim=1)
+            # pseudo_label_src_like = torch.softmax(logits_u_w_src_like.detach(), dim=1) # [PL] mix image PL
+            # max_probs_src_like, targets_u_w_src_like = torch.max(pseudo_label_src_like, dim=1)
 
             if mix_mask == "class":
                 for image_i in range(batch_size):
@@ -544,8 +545,8 @@ def main():
             # print(logits_strong.shape, label_strong.shape)
             # loss = L_l + L_u
             # [TODO:mi] add strong augmentation consistency loss
-            loss = L_l + L_u  + L_my_consistency
-            # loss = L_l + L_my_consistency
+            # loss = L_l + L_u  + L_my_consistency
+            loss = L_l + L_u 
         else:
             loss = L_l
 
@@ -631,10 +632,10 @@ def main():
             save_image(label_strong[0].cpu(),i_iter,'label1_strong',palette.CityScpates_palette)
             
             # save_image(inputs_u_w[0].cpu(),i_iter,'input1_weak',palette.CityScpates_palette)
-            save_image(inputs_u_w_src_like[0].cpu(),i_iter,'inputs_w1_src_like',palette.CityScpates_palette)
-            save_image(targets_u_w_src_like[0].cpu(),i_iter,'pred_w1_src_like',palette.CityScpates_palette)
-            
-
+            # save_image(inputs_u_w_src_like[0].cpu(),i_iter,'inputs_w1_src_like',palette.CityScpates_palette)
+            # save_image(targets_u_w_src_like[0].cpu(),i_iter,'pred_w1_src_like',palette.CityScpates_palette)
+            # save_image(targets_u_w[0].cpu(),i_iter,'pred_w1',palette.CityScpates_palette)
+            # save_image(inputs_u_w[0].cpu(),i_iter,'inputs_w1',palette.CityScpates_palette)
 
     _save_checkpoint(num_iterations, model, optimizer, config, ema_model)
 

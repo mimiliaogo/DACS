@@ -46,9 +46,10 @@ class GTA5DataSet(data.Dataset):
 
     def __getitem__(self, index):
         datafiles = self.files[index]
-
-        image = Image.open(datafiles["img"]).convert('RGB')
-        print('gta5', datafiles["img"])
+        image_tgt_like_path = os.path.join('/mnt/shared/engine211/mimi/DPI2I_path_to_GTA52cityscapes', datafiles["img"].split('/')[-1])
+          
+        # image = Image.open(datafiles["img"]).convert('RGB')
+        image = Image.open(image_tgt_like_path).convert('RGB')
         label = Image.open(datafiles["label"])
         name = datafiles["name"]
 

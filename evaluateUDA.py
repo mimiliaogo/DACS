@@ -160,8 +160,9 @@ def evaluate(model, dataset, ignore_label=250, save_output_images=False, save_di
     for index, batch in enumerate(testloader):
         # image, label, size, name, _ = batch
         # [TODO:mimi] strong aug
-        image, _, _, label, _, _, _ = batch
-
+        image, _, _, _, label, _, _, _, = batch
+        # image, images_strong, params_strong, images_src_like, _, _, _, _
+        # mg, img_strong, params_strong, img_style, lbl, img_path, lbl_path, img_name
         # size = size[0] #[TODO:mimi remove useless]
         #if index > 500:
         #    break

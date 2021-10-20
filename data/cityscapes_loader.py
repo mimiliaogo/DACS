@@ -92,7 +92,7 @@ class cityscapesLoader(data.Dataset):
         self.files[split] = recursive_glob(rootdir=self.images_base, suffix=".png")
         # [TODO: mimi style transfer files]
         self.style_files = {}
-        self.style_images_base = os.path.join('/home/engine211/Code/DPL/CycleGAN_DPL/DPI2I_path_to_cityscapes2GTA5', self.split)
+        self.style_images_base = os.path.join('/mnt/shared/engine211/mimi/DPI2I_path_to_cityscapes2GTA5', self.split)
         self.style_files[split] = recursive_glob(rootdir=self.style_images_base, suffix=".png")
 
         self.void_classes = [0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1]
@@ -144,7 +144,9 @@ class cityscapesLoader(data.Dataset):
         img_path = self.files[self.split][index].rstrip()
         #[TODO: style img]
         # img_style_path = self.style_files[self.split][index].rstrip()
-        img_style_path = os.path.join('/home/engine211/Code/DPL/CycleGAN_DPL/DPI2I_path_to_cityscapes2GTA5', self.split, img_path.split('/')[-1])
+        
+        img_style_path = os.path.join('/mnt/shared/engine211/mimi/DPI2I_path_to_cityscapes2GTA5', self.split, img_path.split('/')[-1])
+     
 
         lbl_path = os.path.join(
             self.annotations_base,
@@ -154,8 +156,12 @@ class cityscapesLoader(data.Dataset):
 
         img = m.imread(img_path)
         img = np.array(img, dtype=np.uint8)
-        img_style = m.imread(img_style_path)
-        img_style = np.array(img_style, dtype=np.uint8)
+        try:
+            img_style = m.imread(img_style_path)
+            img_style = np.array(img_style, dtype=np.uint8)
+        except:
+            img_style = img
+
         lbl = m.imread(lbl_path)
         lbl = np.array(lbl, dtype=np.uint8)
         lbl = self.encode_segmap(lbl)

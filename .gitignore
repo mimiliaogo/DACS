@@ -3,4 +3,4 @@ utils/sync_batchnorm/__pycache__/*
 *.pth
 saved/*
 visualiseImages/*
-
+*.log

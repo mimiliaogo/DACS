@@ -317,6 +317,17 @@ def main():
 
         #data_aug = Compose([RandomHorizontallyFlip()])
         train_dataset = data_loader(data_path, is_transform=True, augmentations=data_aug, strong_augmentations=True, img_size=input_size, img_mean = IMG_MEAN)
+    
+    if dataset == 'nthu_husky':
+        data_loader = get_loader('nthu_husky')
+        data_path = get_data_path('nthu_husky')
+        if random_crop:
+            data_aug = Compose([RandomCrop_gta(input_size)])
+        else:
+            data_aug = None
+
+        #data_aug = Compose([RandomHorizontallyFlip()])
+        train_dataset = data_loader(data_path, is_transform=True, augmentations=data_aug, strong_augmentations=True, img_size=(1280, 720), img_mean = IMG_MEAN)
 
     train_dataset_size = len(train_dataset)
     print ('dataset size: ', train_dataset_size)
@@ -596,7 +607,9 @@ def main():
             model.eval()
             if dataset == 'cityscapes':
                 mIoU, eval_loss = evaluate(model, dataset, ignore_label=ignore_label, input_size=(512,1024), save_dir=checkpoint_dir)
-
+            if dataset == 'nthu_husky':
+                mIoU = 0 
+                eval_loss = 0
             model.train()
 
             if mIoU > best_mIoU and save_best_model:
@@ -660,7 +673,10 @@ if __name__ == '__main__':
     if config['pretrained'] == 'coco':
         restore_from = 'http://vllab1.ucmerced.edu/~whung/adv-semi-seg/resnet101COCO-41f33a49.pth'
 
-    num_classes=19
+    # num_classes=19  
+    # TODO: nthu has 9 classes
+    num_classes=9
+
     IMG_MEAN = np.array((104.00698793, 116.66876762, 122.67891434), dtype=np.float32)
 
     batch_size = config['training']['batch_size']

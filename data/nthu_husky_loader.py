@@ -4,12 +4,13 @@ import numpy as np
 import scipy.misc as m
 
 from torch.utils import data
+from PIL import Image
 
 from data.city_utils import recursive_glob
 from data.augmentations import *
 from utils.randaugment import RandAugmentMC
 
-class cityscapesLoader(data.Dataset):
+class NTHU_HUSKYLoader(data.Dataset):
     """cityscapesLoader
 
     https://www.cityscapes-dataset.com
@@ -89,7 +90,14 @@ class cityscapesLoader(data.Dataset):
             self.root, "gtFine", self.split
         )
 
-        self.files[split] = recursive_glob(rootdir=self.images_base, suffix=".png")
+        # self.files[split] = recursive_glob(rootdir=self.images_base, suffix=".png")
+        # TODO: nthu
+        list_path = '/home/engine211/Code/DACS/data/nthu_husky_list/train.txt'
+        self.files["train"] = []
+        self.img_ids = [i_id.strip() for i_id in open(list_path)]
+        for name in self.img_ids:
+            img_file = os.path.join(self.root, name)
+            self.files[self.split].append(img_file)
 
         self.void_classes = [0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1]
         self.valid_classes = [7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33,]
@@ -138,39 +146,64 @@ class cityscapesLoader(data.Dataset):
         :param index:
         """
         img_path = self.files[self.split][index].rstrip()
-        lbl_path = os.path.join(
-            self.annotations_base,
-            img_path.split(os.sep)[-2], # temporary for cross validation
-            os.path.basename(img_path)[:-15] + "gtFine_labelIds.png",
-        )
+        # lbl_path = os.path.join(
+        #     self.annotations_base,
+        #     img_path.split(os.sep)[-2], # temporary for cross validation
+        #     os.path.basename(img_path)[:-15] + "gtFine_labelIds.png",
+        # )
+        # TODO: dummy label path
+        lbl_path = '/mnt/shared/engine211/Dataset/GTA5/labels/07136.png'
 
-        img = m.imread(img_path)
-        img = np.array(img, dtype=np.uint8)
-        
-        lbl = m.imread(lbl_path)
-        lbl = np.array(lbl, dtype=np.uint8)
-        lbl = self.encode_segmap(lbl)
-        print('hello')
+        # img = m.imread(img_path)
+        # img = np.array(img, dtype=np.uint8)
+        # lbl = m.imread(lbl_path)
+        # lbl = np.array(lbl, dtype=np.uint8)
+        # lbl = self.encode_segmap(lbl)
+
+        img = Image.open(img_path).convert('RGB')
+        lbl = Image.open(lbl_path)
+
+        # resize
+        img = img.resize(self.img_size, Image.BICUBIC)
+        lbl = lbl.resize(self.img_size, Image.NEAREST)
+
+        img = np.asarray(img, np.uint8)
+        lbl = np.asarray(lbl, np.uint8)
+
 
         if self.augmentations is not None:
             img, lbl = self.augmentations(img, lbl)
+        # img = np.asarray(img, np.float32)
+        # lbl = np.asarray(lbl, np.float32)
 
         # [TODO:mimi] strong augmentation
         img_strong = img
         params_strong = None
         if self.strong_augmentations:
             img_strong, params_strong = self.randaug(Image.fromarray(img))
-        print('hello2')
         
-        if self.is_transform:
-                img_strong, _ = self.transform(img_strong, lbl)
-                img, lbl = self.transform(img, lbl)
-        print('hello3')
+        # if self.is_transform:
+        #         img_strong, _ = self.transform(img_strong, lbl)
+        #         img, lbl = self.transform(img, lbl)
+
+        img = np.asarray(img, np.float32)
+        img_strong = np.asarray(img_strong, np.float32)
+        lbl = np.asarray(lbl, np.float32)
+
+        img = img[:, :, ::-1]  # change to BGR
+        img -= self.mean
+        img = img.transpose((2, 0, 1))
+
+        img_strong = img_strong[:, :, ::-1]  # change to BGR
+        img_strong -= self.mean
+        img_strong = img_strong.transpose((2, 0, 1))
 
         img_name = img_path.split('/')[-1]
         if self.return_id:
             return img, lbl, img_name, img_name, index
-        return img, img_strong, params_strong, lbl, img_path, lbl_path, img_name
+
+
+        return img.copy(), img_strong.copy(), params_strong, lbl.copy(), img_path, lbl_path, img_name
 
     def transform(self, img, lbl):
         """transform

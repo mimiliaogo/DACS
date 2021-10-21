@@ -26,9 +26,13 @@ class GTA5DataSet(data.Dataset):
             self.img_ids = self.img_ids * int(np.ceil(float(max_iters) / len(self.img_ids)))
         self.files = []
 
-        self.id_to_trainid = {7: 0, 8: 1, 11: 2, 12: 3, 13: 4, 17: 5,
-                              19: 6, 20: 7, 21: 8, 22: 9, 23: 10, 24: 11, 25: 12,
-                              26: 13, 27: 14, 28: 15, 31: 16, 32: 17, 33: 18}
+        # self.id_to_trainid = {7: 0, 8: 1, 11: 2, 12: 3, 13: 4, 17: 5,
+        #                       19: 6, 20: 7, 21: 8, 22: 9, 23: 10, 24: 11, 25: 12,
+        #                       26: 13, 27: 14, 28: 15, 31: 16, 32: 17, 33: 18}
+        # TODO: nthu (9 classes)
+        self.id_to_trainid = {7: 0, 8: 1, 11: 2, 12: 2, 13: 2, 21: 3, 
+                                22: 4, 23: 5, 24: 6, 25: 6, 26: 7, 27: 7, 28: 7,
+                                31: 7, 32: 8, 33: 8}
 
         # for split in ["train", "trainval", "val"]:
         for name in self.img_ids:

@@ -1,6 +1,6 @@
 {
   "model": "DeepLab",
-  "dataset": "cityscapes",
+  "dataset": "nthu_husky",
 
   "training": {
     "batch_size": 2,
@@ -38,8 +38,8 @@
   "ignore_label": 255,
 
   "utils": {
-    "save_checkpoint_every": 5000,
-    "checkpoint_dir": "./saved/DeepLabv2",
+    "save_checkpoint_every": 1000,
+    "checkpoint_dir": "./saved/DeepLabv2-nthu",
     "val_per_iter": 5000,
     "tensorboard": true,
     "log_per_iter": 100,

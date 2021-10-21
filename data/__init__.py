@@ -4,6 +4,7 @@ from data.base import *
 from data.cityscapes_loader import cityscapesLoader
 from data.gta5_dataset import GTA5DataSet
 from data.synthia_dataset import SynthiaDataSet
+from data.nthu_husky_loader import NTHU_HUSKYLoader
 
 
 def get_loader(name):
@@ -13,7 +14,8 @@ def get_loader(name):
     return {
         "cityscapes": cityscapesLoader,
         "gta": GTA5DataSet,
-        "synthia": SynthiaDataSet
+        "synthia": SynthiaDataSet,
+        "nthu_husky": NTHU_HUSKYLoader,
     }[name]
 
 def get_data_path(name):
@@ -27,3 +29,5 @@ def get_data_path(name):
         return '/mnt/shared/engine211/Dataset/GTA5/'
     if name == 'synthia':
         return '../data/RAND_CITYSCAPES'
+    if name == 'nthu_husky':
+        return '/mnt/shared/engine211/Dataset/NTHU_HUSKY/imgs'

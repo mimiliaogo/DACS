@@ -21,6 +21,8 @@ import torchvision.transforms as transform
 from PIL import Image
 import scipy.misc
 from utils.loss import CrossEntropy2d
+from utils.helpers import colorize_mask
+import utils.palette as palette
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
@@ -149,18 +151,26 @@ def evaluate(model, dataset, ignore_label=250, save_output_images=False, save_di
         testloader = data.DataLoader(test_dataset, batch_size=1, shuffle=True, pin_memory=True)
         interp = nn.Upsample(size=(720,1280), mode='bilinear', align_corners=True)
         ignore_label = 255
+    elif dataset == 'nthu_husky':
+        num_classes = 9
+        data_loader = get_loader('nthu_husky')
+        data_path = get_data_path('nthu_husky')
+        test_dataset = data_loader( data_path, img_size=input_size, img_mean = IMG_MEAN, is_transform=True, split='train')
+        testloader = data.DataLoader(test_dataset, batch_size=1, shuffle=False, pin_memory=True)
+        interp = nn.Upsample(size=input_size, mode='bilinear', align_corners=True)
+        ignore_label = 250 
 
     print('Evaluating, found ' + str(len(testloader)) + ' images.')
 
-    data_list = []
-    colorize = VOCColorize()
+    # data_list = []
+    # colorize = VOCColorize()
 
-    total_loss = []
+    # total_loss = []
 
     for index, batch in enumerate(testloader):
         # image, label, size, name, _ = batch
         # [TODO:mimi] strong aug
-        image, _, _, label, _, _, _ = batch
+        image, _, _, label, _, _, img_name = batch
 
         # size = size[0] #[TODO:mimi remove useless]
         #if index > 500:
@@ -169,34 +179,32 @@ def evaluate(model, dataset, ignore_label=250, save_output_images=False, save_di
             output  = model(Variable(image).cuda())
             output = interp(output)
 
-            label_cuda = Variable(label.long()).cuda()
-            criterion = CrossEntropy2d(ignore_label=ignore_label).cuda()  # Ignore label ??
-            loss = criterion(output, label_cuda)
-            total_loss.append(loss.item())
+            # TODO : no gt
+            # label_cuda = Variable(label.long()).cuda()
+            # criterion = CrossEntropy2d(ignore_label=ignore_label).cuda()  # Ignore label ??
+            # loss = criterion(output, label_cuda)
+            # total_loss.append(loss.item())
 
             output = output.cpu().data[0].numpy()
 
-            if dataset == 'cityscapes':
-                gt = np.asarray(label[0].numpy(), dtype=np.int)
-            elif dataset == 'gta':
-                gt = np.asarray(label[0].numpy(), dtype=np.int)
+            # if dataset == 'cityscapes':
+            #     gt = np.asarray(label[0].numpy(), dtype=np.int)
+            # elif dataset == 'gta':
+            #     gt = np.asarray(label[0].numpy(), dtype=np.int)
 
-            output = output.transpose(1,2,0) # H W C
-            output = np.asarray(np.argmax(output, axis=2), dtype=np.int)
+            # output = output.transpose(1,2,0) # C H W => H W C
+            output = np.asarray(np.argmax(output, axis=0), dtype=np.int)
+            colorized_mask = colorize_mask(output, palette.CityScpates_palette)
+            colorized_mask.save(os.path.join(save_dir, img_name[0] + '_pred.png'))
 
-            data_list.append([gt.flatten(), output.flatten()])
 
         if (index+1) % 100 == 0:
             print('%d processed'%(index+1))
 
-    if save_dir:
-        filename = os.path.join(save_dir, 'result.txt')
-    else:
-        filename = None
-    mIoU = get_iou(data_list, num_classes, dataset, filename)
-    loss = np.mean(total_loss)
-    return mIoU, loss
-
+    # mIoU = get_iou(data_list, num_classes, dataset, filename)
+    # loss = np.mean(total_loss)
+    # return mIoU, loss
+    
 def main():
     """Create the model and start the evaluation process."""
 
@@ -234,8 +242,13 @@ if __name__ == '__main__':
     if dataset == 'gta':
         num_classes = 19
         input_size = (1280,720)
-
+    if dataset == 'nthu_husky':
+        num_classes = 9
+        input_size = (720,1280)
+        
     ignore_label = config['ignore_label']
     save_dir = os.path.join(*args.model_path.split('/')[:-1])
-
+    save_dir = './results/nthu'
+    
+    
     main()

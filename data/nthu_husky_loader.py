@@ -78,11 +78,11 @@ class NTHU_HUSKYLoader(data.Dataset):
         self.strong_augmentations = strong_augmentations
         self.randaug = RandAugmentMC(4, 10) # make augmentation stronger
         self.img_norm = img_norm
-        self.n_classes = 19
+        self.n_classes = 9
         self.img_size = (
             img_size if isinstance(img_size, tuple) else (img_size, img_size)
         )
-        self.mean = img_mean
+        self.mean = np.array([128, 128, 128])
         self.files = {}
 
         self.images_base = os.path.join(self.root, "leftImg8bit", self.split)
@@ -92,7 +92,7 @@ class NTHU_HUSKYLoader(data.Dataset):
 
         # self.files[split] = recursive_glob(rootdir=self.images_base, suffix=".png")
         # TODO: nthu
-        list_path = '/home/engine211/Code/DACS/data/nthu_husky_list/train.txt'
+        list_path = '/home/engine210/mimi/DACS/data/nthu_husky_list/train.txt'
         self.files["train"] = []
         self.img_ids = [i_id.strip() for i_id in open(list_path)]
         for name in self.img_ids:
@@ -152,7 +152,7 @@ class NTHU_HUSKYLoader(data.Dataset):
         #     os.path.basename(img_path)[:-15] + "gtFine_labelIds.png",
         # )
         # TODO: dummy label path
-        lbl_path = '/mnt/shared/engine211/Dataset/GTA5/labels/07136.png'
+        lbl_path = '/work/engine210/Dataset/GTA5/labels/07136.png'
 
         # img = m.imread(img_path)
         # img = np.array(img, dtype=np.uint8)
@@ -205,63 +205,6 @@ class NTHU_HUSKYLoader(data.Dataset):
 
         return img.copy(), img_strong.copy(), params_strong, lbl.copy(), img_path, lbl_path, img_name
 
-    def transform(self, img, lbl):
-        """transform
-
-        :param img:
-        :param lbl:
-        """
-        img = m.imresize(
-            img, (self.img_size[0], self.img_size[1])
-        )  # uint8 with RGB mode
-        img = img[:, :, ::-1]  # RGB -> BGR
-        img = img.astype(np.float64)
-        img -= self.mean
-        if self.img_norm:
-            # Resize scales images from 0 to 255, thus we need
-            # to divide by 255.0
-            img = img.astype(float) / 255.0
-        # NHWC -> NCHW
-        img = img.transpose(2, 0, 1)
-
-        classes = np.unique(lbl)
-        lbl = lbl.astype(float)
-        lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), "nearest", mode="F")
-        lbl = lbl.astype(int)
-        if not np.all(classes == np.unique(lbl)):
-            print("WARN: resizing labels yielded fewer classes")
-
-        if not np.all(np.unique(lbl[lbl != self.ignore_index]) < self.n_classes):
-            print("after det", classes, np.unique(lbl))
-            raise ValueError("Segmentation map contained invalid class values")
-
-        img = torch.from_numpy(img).float()
-        lbl = torch.from_numpy(lbl).long()
-
-        return img, lbl
-
-    def decode_segmap(self, temp):
-        r = temp.copy()
-        g = temp.copy()
-        b = temp.copy()
-        for l in range(0, self.n_classes):
-            r[temp == l] = self.label_colours[l][0]
-            g[temp == l] = self.label_colours[l][1]
-            b[temp == l] = self.label_colours[l][2]
-
-        rgb = np.zeros((temp.shape[0], temp.shape[1], 3))
-        rgb[:, :, 0] = r / 255.0
-        rgb[:, :, 1] = g / 255.0
-        rgb[:, :, 2] = b / 255.0
-        return rgb
-
-    def encode_segmap(self, mask):
-        # Put all void classes to zero
-        for _voidc in self.void_classes:
-            mask[mask == _voidc] = self.ignore_index
-        for _validc in self.valid_classes:
-            mask[mask == _validc] = self.class_map[_validc]
-        return mask
 
 '''
 if __name__ == "__main__":

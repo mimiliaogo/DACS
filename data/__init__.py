@@ -24,10 +24,10 @@ def get_data_path(name):
     :param config_file:
     """
     if name == 'cityscapes':
-        return '/mnt/shared/engine211/Dataset/cityscapes/'
+        return '/work/engine210/Dataset/cityscapes/'
     if name == 'gta' or name == 'gtaUniform':
-        return '/mnt/shared/engine211/Dataset/GTA5/'
+        return '/work/engine210/Dataset/GTA5/'
     if name == 'synthia':
         return '../data/RAND_CITYSCAPES'
     if name == 'nthu_husky':
-        return '/mnt/shared/engine211/Dataset/NTHU_HUSKY/imgs'
+        return '/work/engine210/Dataset/NTHU_HUSKY/imgs'

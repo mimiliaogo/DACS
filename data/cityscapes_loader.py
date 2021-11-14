@@ -150,22 +150,21 @@ class cityscapesLoader(data.Dataset):
         lbl = m.imread(lbl_path)
         lbl = np.array(lbl, dtype=np.uint8)
         lbl = self.encode_segmap(lbl)
-        print('hello')
-
+        print('unity test, bf')
+        print(np.unique(lbl))
         if self.augmentations is not None:
             img, lbl = self.augmentations(img, lbl)
+        print(np.unique(lbl))
 
         # [TODO:mimi] strong augmentation
         img_strong = img
         params_strong = None
         if self.strong_augmentations:
             img_strong, params_strong = self.randaug(Image.fromarray(img))
-        print('hello2')
         
         if self.is_transform:
                 img_strong, _ = self.transform(img_strong, lbl)
                 img, lbl = self.transform(img, lbl)
-        print('hello3')
 
         img_name = img_path.split('/')[-1]
         if self.return_id:

@@ -19,6 +19,8 @@ from torch.autograd import Variable
 import torchvision.transforms as transform
 
 from model.deeplabv2 import Res_Deeplab
+# TODO: mimi mobilenet backbone
+from model.deeplabv2_end import Deeplabv2
 
 from utils.loss import CrossEntropy2d
 from utils.loss import CrossEntropyLoss2dPixelWiseWeighted
@@ -93,7 +95,9 @@ def adjust_learning_rate(optimizer, i_iter):
 def create_ema_model(model):
     #ema_model = getattr(models, config['arch']['type'])(self.train_loader.dataset.num_classes, **config['arch']['args']).to(self.device)
     ema_model = Res_Deeplab(num_classes=num_classes)
-
+    # TODO: mobilenet
+    # ema_model = Deeplabv2(backbone='mobilenet', num_classes=num_classes)
+    
     for param in ema_model.parameters():
         param.detach_()
     mp = list(model.parameters())
@@ -273,6 +277,8 @@ def main():
 
     # create network
     model = Res_Deeplab(num_classes=num_classes)
+    # TODO: mobilenet
+    # model = Deeplabv2(backbone='mobilenet', num_classes=num_classes)
 
     # load pretrained parameters
     #saved_state_dict = torch.load(args.restore_from)
@@ -352,21 +358,28 @@ def main():
 
     #New loader for Domain transfer
     if True:
-        data_loader = get_loader('gta')
-        data_path = get_data_path('gta')
+        # data_loader = get_loader('gta')
+        # data_path = get_data_path('gta')
+        # if random_crop:
+        #     data_aug = Compose([RandomCrop_gta(input_size)])
+        # else:
+        #     data_aug = None
+
+        # #data_aug = Compose([RandomHorizontallyFlip()])
+        # train_dataset = data_loader(data_path, list_path = './data/gta5_list/train.txt', augmentations=data_aug, img_size=(1280,720), mean=IMG_MEAN)
+        # TODO: source = unity
+        data_loader = get_loader('unity')
+        data_path = get_data_path('unity')
         if random_crop:
             data_aug = Compose([RandomCrop_gta(input_size)])
-        else:
-            data_aug = None
-
-        #data_aug = Compose([RandomHorizontallyFlip()])
-        train_dataset = data_loader(data_path, list_path = './data/gta5_list/train.txt', augmentations=data_aug, img_size=(1280,720), mean=IMG_MEAN)
-
+        train_dataset = data_loader(data_path, list_path = './data/unity_list/train.txt', augmentations=data_aug, img_size=(1280,720), mean=IMG_MEAN)
+        
     trainloader = data.DataLoader(train_dataset,
                     batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
 
     trainloader_iter = iter(trainloader)
-    print('gta size:',len(trainloader))
+    # TODO: source = unity
+    print('unity size:',len(trainloader))
 
     #Load new data for domain_transfer
 

@@ -53,7 +53,7 @@ class NTHU_HUSKYLoader(data.Dataset):
         root,
         split="train",
         is_transform=False,
-        img_size=(512, 1024),
+        img_size=(1280, 720),
         img_norm=False,
         augmentations=None,
         #[TODO:mimi]
@@ -92,12 +92,13 @@ class NTHU_HUSKYLoader(data.Dataset):
 
         # self.files[split] = recursive_glob(rootdir=self.images_base, suffix=".png")
         # TODO: nthu
-        list_path = '/home/engine210/mimi/DACS/data/nthu_husky_list/train.txt'
+        list_path = '/home/engine210/mimi/DACS/data/nthu_husky_list/train_all.txt'
         self.files["train"] = []
         self.img_ids = [i_id.strip() for i_id in open(list_path)]
         for name in self.img_ids:
             img_file = os.path.join(self.root, name)
-            self.files[self.split].append(img_file)
+            # TODO: 
+            self.files[self.split].append(name)
 
         self.void_classes = [0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1]
         self.valid_classes = [7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33,]

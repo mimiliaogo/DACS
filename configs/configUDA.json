@@ -39,7 +39,7 @@
 
   "utils": {
     "save_checkpoint_every": 5000,
-    "checkpoint_dir": "./saved/DeepLabv2-nthu",
+    "checkpoint_dir": "./saved/DeepLabv2-nthu-unity",
     "val_per_iter": 5000,
     "tensorboard": true,
     "log_per_iter": 100,

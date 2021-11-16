@@ -87,15 +87,13 @@ class UnityDataSet(data.Dataset):
         # remove obstalcle
         label_g = label[:, :, 1]
         label_copy[label_g == 255] = 255
-        print("before aug")
-        print(np.unique(label_copy)) 
-        if self.augmentations is not None:
-            image, label_copy = self.augmentations(image, Image.fromarray(label_copy))
+        label_copy = np.asarray(label_copy, np.uint8)
 
-        print(np.unique(label_copy)) 
+        if self.augmentations is not None:
+            image, label_copy = self.augmentations(image, label_copy)
+
         image = np.asarray(image, np.float32)
         label_copy = np.asarray(label_copy, np.float32)       
-        print(label_copy.shape)
         size = image.shape
         image = image[:, :, ::-1]  # change to BGR
         image -= self.mean

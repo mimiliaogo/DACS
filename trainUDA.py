@@ -558,7 +558,9 @@ def main():
             # print(logits_strong.shape, label_strong.shape)
             # loss = L_l + L_u
             # [TODO:mi] add strong augmentation consistency loss
-            loss = L_l + L_u  + L_my_consistency
+            # loss = L_l + L_u  + L_my_consistency
+            # #TODO: source only
+            loss = L_l 
             # loss = L_l + L_my_consistency
         else:
             loss = L_l

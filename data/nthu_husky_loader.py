@@ -60,7 +60,8 @@ class NTHU_HUSKYLoader(data.Dataset):
         strong_augmentations=True,
         version="cityscapes",
         return_id=False,
-        img_mean = np.array([73.15835921, 82.90891754, 72.39239876])
+        img_mean = np.array([73.15835921, 82.90891754, 72.39239876]),
+        list_path = '/home/engine210/mimi/DACS/data/nthu_husky_list/train_all.txt'
     ):
         """__init__
 
@@ -85,15 +86,16 @@ class NTHU_HUSKYLoader(data.Dataset):
         self.mean = np.array([128, 128, 128])
         self.files = {}
 
-        self.images_base = os.path.join(self.root, "leftImg8bit", self.split)
-        self.annotations_base = os.path.join(
-            self.root, "gtFine", self.split
-        )
+        # self.images_base = os.path.join(self.root, "leftImg8bit", self.split)
+        # self.annotations_base = os.path.join(
+        #     self.root, "gtFine", self.split
+        # )
 
         # self.files[split] = recursive_glob(rootdir=self.images_base, suffix=".png")
         # TODO: nthu
-        list_path = '/home/engine210/mimi/DACS/data/nthu_husky_list/train_all.txt'
+        # list_path = '/home/engine210/mimi/DACS/data/nthu_husky_list/train_all.txt'
         self.files["train"] = []
+        self.files["val"] = []
         self.img_ids = [i_id.strip() for i_id in open(list_path)]
         for name in self.img_ids:
             img_file = os.path.join(self.root, name)
@@ -125,6 +127,32 @@ class NTHU_HUSKYLoader(data.Dataset):
             "bicycle",
         ]
 
+        # self.rgb_b_to_trainid = {
+        #     128: 0,
+        #     232: 1,
+        #     70: 2,
+        #     35: 3,
+        #     152: 4,
+        #     180: 5,
+        #     60: 6,
+        #     142: 7,
+        #     32: 8
+        # }
+        # TODO: updated gt
+        self.rgb_b_to_trainid = {
+            128: 0,
+            232: 1,
+            70: 2,
+            153: 2,
+            35: 3,
+            152: 4,
+            180: 5,
+            60: 6,
+            61: 6,
+            142: 7,
+            32: 8,
+        }
+
         self.ignore_index = 250
         self.class_map = dict(zip(self.valid_classes, range(19)))
 
@@ -154,7 +182,10 @@ class NTHU_HUSKYLoader(data.Dataset):
         # )
         # TODO: dummy label path
         lbl_path = '/work/engine210/Dataset/GTA5/labels/07136.png'
-
+        if self.split == 'val':
+            lbl_path = img_path.split('.')[0] + '_label.png'
+        print(img_path)
+        print(lbl_path)
         # img = m.imread(img_path)
         # img = np.array(img, dtype=np.uint8)
         # lbl = m.imread(lbl_path)
@@ -171,6 +202,19 @@ class NTHU_HUSKYLoader(data.Dataset):
         img = np.asarray(img, np.uint8)
         lbl = np.asarray(lbl, np.uint8)
 
+        if self.split == 'val':
+            # obtain rgb b channel
+            label_b = lbl[:, :, 2]
+
+            label_copy = 255 * np.ones((720, 1280), dtype=np.float32)
+            for k, v in self.rgb_b_to_trainid.items():
+                label_copy[label_b == k] = v
+
+            # remove obstalcle
+            label_g = lbl[:, :, 1]
+            label_copy[label_g == 255] = 255
+            label_copy = np.asarray(label_copy, np.uint8)
+            lbl = label_copy
 
         if self.augmentations is not None:
             img, lbl = self.augmentations(img, lbl)

@@ -30,10 +30,13 @@ class DACS():
         # self.ckpt_path = '/home/engine210/mimi/DACS/saved/DeepLabv2-nthu/10-21_14-48-UDA-gta-nthu_resume-10-23_23-45/checkpoint-iter204000.pth'
         # rainbow
         self.ckpt_path = '/home/engine210/mimi/end-uda/nthu_deeplabv3+/35000_model.pth'
+        # src only
+        self.ckpt_path = '/home/engine210/mimi/DACS/saved/DeepLabv2-nthu-unity/11-22_11-50-nthu-unity-noObstacle/checkpoint-iter110000.pth'
+
         self.num_classes = 9
         
-        # self.model = deeplabv2.Res_Deeplab(num_classes=self.num_classes)
-        self.model = deeplabv3.Deeplabv3(backbone='mobilenet', num_classes=9)
+        self.model = deeplabv2.Res_Deeplab(num_classes=self.num_classes)
+        # self.model = deeplabv3.Deeplabv3(backbone='mobilenet', num_classes=9)
         checkpoint = torch.load(self.ckpt_path)
         try: #dacs
             self.model.load_state_dict(checkpoint['model'])
@@ -191,7 +194,7 @@ if __name__ == "__main__":
                 # error_map[gt == 250] = 0 # unlabel index
                 # cv2.imwrite(f'./eval_img/{i}_errormap.png', error_map)
 
-                out_dir = './eval_rainbow/'
+                out_dir = './eval_rainbow_NTHU/'
                 output_save = model.decode_segmap(output)
                 img = cv2.imread(name)
                 cv2.imwrite(f'{out_dir}/{n_saved}_0img.png', img)
@@ -205,7 +208,7 @@ if __name__ == "__main__":
         # if (index+1) % 10 == 0:
         #     print('%d processed'%(index+1))
 
-    mIoU, cIoU = model.get_iou(data_list, 9, 'nthu', './eval_rainbow/result.txt')
+    mIoU, cIoU = model.get_iou(data_list, 9, 'nthu', './eval_rainbow_NTHU/result.txt')
     print('mIoU: %f'%(mIoU))
     
     # start = timeit.default_timer()
@@ -214,3 +217,6 @@ if __name__ == "__main__":
     #     end = timeit.default_timer()
     #     print('Total time: ' + str(end-start) + 'seconds')
     # cv2.imwrite('./test.png', mask)
+
+
+

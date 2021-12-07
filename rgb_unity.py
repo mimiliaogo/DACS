@@ -29,7 +29,7 @@ id_to_trainid = {7: 0, 8: 1, 11: 2, 12: 2, 13: 2, 21: 3,
                 22: 4, 23: 5, 24: 6, 25: 6, 26: 7, 27: 7, 28: 7,
                 31: 7, 32: 8, 33: 8}
 
-img_pth = '/home/engine210/Dataset/NTHU_HUSKY/UNITY_DATASET/202111101812_00001_seg.png'
+img_pth = '/home/engine210/Dataset/NTHU_HUSKY/Unity_Dataset_noObstacles/202111201959_00328_seg.png'
 lbl_path = '/work/engine210/Dataset/GTA5/labels/07136.png'
 
 label = Image.open(img_pth)

@@ -103,7 +103,7 @@ class UnityDataSet(data.Dataset):
 
 
 if __name__ == '__main__':
-    dst = UnityDataSet("/home/engine210/Dataset/NTHU_HUSKY/UNITY_DATASET", is_transform=True)
+    dst = UnityDataSet("/home/engine210/Dataset/NTHU_HUSKY/Unity_Dataset_noObstacles", is_transform=True)
     trainloader = data.DataLoader(dst, batch_size=4)
     for i, data in enumerate(trainloader):
         imgs, labels = data

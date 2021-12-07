@@ -372,7 +372,7 @@ def main():
         data_path = get_data_path('unity')
         if random_crop:
             data_aug = Compose([RandomCrop_gta(input_size)])
-        train_dataset = data_loader(data_path, list_path = './data/unity_list/train.txt', augmentations=data_aug, img_size=(1280,720), mean=IMG_MEAN)
+        train_dataset = data_loader(data_path, list_path = './data/unity_list/train_update.txt', augmentations=data_aug, img_size=(1280,720), mean=IMG_MEAN)
         
     trainloader = data.DataLoader(train_dataset,
                     batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
@@ -558,9 +558,9 @@ def main():
             # print(logits_strong.shape, label_strong.shape)
             # loss = L_l + L_u
             # [TODO:mi] add strong augmentation consistency loss
-            # loss = L_l + L_u  + L_my_consistency
+            loss = L_l + L_u  + L_my_consistency
             # #TODO: source only
-            loss = L_l 
+            # loss = L_l 
             # loss = L_l + L_my_consistency
         else:
             loss = L_l

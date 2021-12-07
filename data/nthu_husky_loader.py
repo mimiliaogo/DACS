@@ -184,8 +184,8 @@ class NTHU_HUSKYLoader(data.Dataset):
         lbl_path = '/work/engine210/Dataset/GTA5/labels/07136.png'
         if self.split == 'val':
             lbl_path = img_path.split('.')[0] + '_label.png'
-        print(img_path)
-        print(lbl_path)
+        # print(img_path)
+        # print(lbl_path)
         # img = m.imread(img_path)
         # img = np.array(img, dtype=np.uint8)
         # lbl = m.imread(lbl_path)

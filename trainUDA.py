@@ -335,6 +335,16 @@ def main():
         #data_aug = Compose([RandomHorizontallyFlip()])
         train_dataset = data_loader(data_path, is_transform=True, augmentations=data_aug, strong_augmentations=True, img_size=(1280, 720), img_mean = IMG_MEAN)
 
+    if dataset == 'nctu':
+        data_loader = get_loader('nthu_husky')
+        data_path = get_data_path('nctu')
+        if random_crop:
+            data_aug = Compose([RandomCrop_gta(input_size)])
+        else:
+            data_aug = None
+
+        train_dataset = data_loader(data_path, is_transform=True, augmentations=data_aug, strong_augmentations=True, img_size=(1280, 720), img_mean = IMG_MEAN, list_path = './data/nctu_list/train.txt')
+
     train_dataset_size = len(train_dataset)
     print ('dataset size: ', train_dataset_size)
 
@@ -358,21 +368,21 @@ def main():
 
     #New loader for Domain transfer
     if True:
-        # data_loader = get_loader('gta')
-        # data_path = get_data_path('gta')
-        # if random_crop:
-        #     data_aug = Compose([RandomCrop_gta(input_size)])
-        # else:
-        #     data_aug = None
-
-        # #data_aug = Compose([RandomHorizontallyFlip()])
-        # train_dataset = data_loader(data_path, list_path = './data/gta5_list/train.txt', augmentations=data_aug, img_size=(1280,720), mean=IMG_MEAN)
-        # TODO: source = unity
-        data_loader = get_loader('unity')
-        data_path = get_data_path('unity')
+        data_loader = get_loader('gta')
+        data_path = get_data_path('gta')
         if random_crop:
             data_aug = Compose([RandomCrop_gta(input_size)])
-        train_dataset = data_loader(data_path, list_path = './data/unity_list/train_update.txt', augmentations=data_aug, img_size=(1280,720), mean=IMG_MEAN)
+        else:
+            data_aug = None
+
+        #data_aug = Compose([RandomHorizontallyFlip()])
+        train_dataset = data_loader(data_path, list_path = './data/gta5_list/train.txt', augmentations=data_aug, img_size=(1280,720), mean=IMG_MEAN)
+        # TODO: source = unity
+        # data_loader = get_loader('unity')
+        # data_path = get_data_path('unity')
+        # if random_crop:
+        #     data_aug = Compose([RandomCrop_gta(input_size)])
+        # train_dataset = data_loader(data_path, list_path = './data/unity_list/train_update.txt', augmentations=data_aug, img_size=(1280,720), mean=IMG_MEAN)
         
     trainloader = data.DataLoader(train_dataset,
                     batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
@@ -622,7 +632,7 @@ def main():
             model.eval()
             if dataset == 'cityscapes':
                 mIoU, eval_loss = evaluate(model, dataset, ignore_label=ignore_label, input_size=(512,1024), save_dir=checkpoint_dir)
-            if dataset == 'nthu_husky':
+            if dataset == 'nthu_husky' or dataset == 'nctu':
                 mIoU = 0 
                 eval_loss = 0
             model.train()

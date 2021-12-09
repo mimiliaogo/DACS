@@ -139,19 +139,19 @@ class NTHU_HUSKYLoader(data.Dataset):
         #     32: 8
         # }
         # TODO: updated gt
-        self.rgb_b_to_trainid = {
-            128: 0,
-            232: 1,
-            70: 2,
-            153: 2,
-            35: 3,
-            152: 4,
-            180: 5,
-            60: 6,
-            61: 6,
-            142: 7,
-            32: 8,
-        }
+        # self.rgb_b_to_trainid = {
+        #     128: 0,
+        #     232: 1,
+        #     70: 2,
+        #     153: 2,
+        #     35: 3,
+        #     152: 4,
+        #     180: 5,
+        #     60: 6,
+        #     61: 6,
+        #     142: 7,
+        #     32: 8,
+        # }
 
         self.ignore_index = 250
         self.class_map = dict(zip(self.valid_classes, range(19)))

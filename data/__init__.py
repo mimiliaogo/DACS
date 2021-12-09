@@ -34,3 +34,5 @@ def get_data_path(name):
         return '/work/engine210/Dataset/NTHU_HUSKY/library_to_EECS'
     if name == 'unity':
         return '/work/engine210/Dataset/NTHU_HUSKY/Unity_Dataset_noObstacles'
+    if name == 'nctu':
+        return '/home/engine210/Dataset/NCTU_IMAGE/image_1207/'

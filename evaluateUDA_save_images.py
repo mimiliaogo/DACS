@@ -159,6 +159,14 @@ def evaluate(model, dataset, ignore_label=250, save_output_images=False, save_di
         testloader = data.DataLoader(test_dataset, batch_size=1, shuffle=False, pin_memory=True)
         interp = nn.Upsample(size=(720,1280), mode='bilinear', align_corners=True)
         ignore_label = 250 
+    elif dataset == 'nctu':
+        num_classes = 9
+        data_loader = get_loader('nthu_husky')
+        data_path = get_data_path('nctu')
+        test_dataset = data_loader(data_path, img_size=input_size, img_mean = IMG_MEAN, is_transform=True, split='train')
+        testloader = data.DataLoader(test_dataset, batch_size=1, shuffle=False, pin_memory=True)
+        interp = nn.Upsample(size=(720,1280), mode='bilinear', align_corners=True)
+        ignore_label = 250 
 
     print('Evaluating, found ' + str(len(testloader)) + ' images.')
 
@@ -245,10 +253,13 @@ if __name__ == '__main__':
     if dataset == 'nthu_husky':
         num_classes = 9
         input_size = (1280,720)
-        
+    if dataset == 'nctu':
+        num_classes = 9
+        input_size = (1280,720)
+
     ignore_label = config['ignore_label']
     save_dir = os.path.join(*args.model_path.split('/')[:-1])
-    save_dir = './results/nthu'
+    save_dir = './results/nctu'
     
     
     main()
